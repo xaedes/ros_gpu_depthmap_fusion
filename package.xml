@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<package format="2">
+    <name>gpu_depthmap_fusion</name>
+    <version>0.0.1</version>
+    <description>
+        depth map and lidar fusion with gpu acceleration
+    </description>
+    <maintainer email="xaedes@gmail.com">xaedes</maintainer>
+    <author email="xaedes@gmail.com">xaedes</author>
+    <license>BSD-3-Clause</license>
+    <buildtool_depend>catkin</buildtool_depend>
+    <depend>roscpp</depend>
+    <depend>std_msgs</depend>
+    <depend>geometry_msgs</depend>
+    <depend>sensor_msgs</depend>
+    <depend>tf2</depend>
+    <depend>tf2_ros</depend>
+    <depend>tf2_geometry_msgs</depend>
+    <depend>cv_bridge</depend>
+
+    <depend>ros_component</depend>
+    <depend>ros_cmake_generate_dependency</depend>
+    <depend>ros_topic_sync</depend>
+    <depend>ros_viz</depend>
+    <depend>glad_ros</depend>
+    <depend>glm_ros</depend>
+
+</package>

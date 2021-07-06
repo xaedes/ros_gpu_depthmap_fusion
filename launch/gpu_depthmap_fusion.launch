@@ -1,0 +1,668 @@
+<!-- 
+
+roslaunch gpu_depthmap_fusion gpu_depthmap_fusion.launch \
+    num_depthmaps:=1 \
+    depthmap_topic_0:=cam1/depth/image_rect_raw \
+    depthmap_topic_1:=cam2/depth/image_rect_raw \
+    caminfo_topic_0:=cam1/depth/camera_info \
+    caminfo_topic_1:=cam2/depth/camera_info \
+    voxel_filter_size_x:=0.01 voxel_filter_size_y:=0.01 voxel_filter_size_z:=.01 \
+    voxel_filter_enable_average:=true \
+    enable_debug_output:=true \
+    enable_radius_filter:=false \
+    world_frame:=world \
+    crop_frame:=world \
+    crop_min_z:=-0.5 \
+    mode:=normal
+
+ -->
+<launch>
+    <arg name="name" default="dmpfsn" />
+
+    <arg name="in_dm_queue_size" default="2" />
+    <arg name="in_ps_queue_size" default="10" />
+    <arg name="out_queue_size" default="5" />
+
+    <arg name="num_depthmaps" default="1" />
+    <arg name="num_pointclouds" default="1" />
+    
+    <!-- <arg name="resample_rate" default="0" /> -->
+    <!-- <arg name="resample_rate" default="10" /> -->
+    <arg name="resample_rate" default="30" />
+    <!-- <arg name="resample_rate" default="60" /> -->
+
+    <arg name="point_sequence_aggregation_timespan" default="1" />
+    <arg name="point_sequence_flying_pixel_filter_threshold" default="0.05" />
+    <arg name="point_sequence_flying_pixel_filter_size" default="1" />
+    <!-- <arg name="point_sequence_flying_pixel_filter_threshold" default="0.4" /> -->
+    <!-- <arg name="point_sequence_flying_pixel_filter_size" default="3" /> -->
+
+    <!-- <arg name="depthmap_topic_0" /> -->
+    <arg name="depthmap_topic_0" default="/cam1/depth/image_rect_raw"/>
+    <arg name="depthmap_topic_1" default="in1" />
+    <arg name="depthmap_topic_2" default="in2" />
+    <arg name="depthmap_topic_3" default="in3" />
+    <arg name="depthmap_topic_4" default="in4" />
+    <arg name="depthmap_topic_5" default="in5" />
+
+    <!-- <arg name="caminfo_topic_0" /> -->
+    <arg name="caminfo_topic_0" default="/cam1/depth/camera_info" />
+    <arg name="caminfo_topic_1" default="cam1" />
+    <arg name="caminfo_topic_2" default="cam2" />
+    <arg name="caminfo_topic_3" default="cam3" />
+    <arg name="caminfo_topic_4" default="cam4" />
+    <arg name="caminfo_topic_5" default="cam5" />
+
+    <!-- <arg name="pcl_topic_0" /> -->
+    <arg name="pcl_topic_0" default="/livox2ros/out"/>
+    <arg name="pcl_topic_1" default="pcl_in1" />
+    <arg name="pcl_topic_2" default="pcl_in2" />
+    <arg name="pcl_topic_3" default="pcl_in3" />
+    <arg name="pcl_topic_4" default="pcl_in4" />
+    <arg name="pcl_topic_5" default="pcl_in5" />
+
+    <arg name="enable_debug_output" default="true" />
+
+    <arg name="mode" default="normal"/>
+    <!-- <arg name="mode" default="debug"/> -->
+    <!-- <arg name="mode" default="profiling"/> -->
+    
+    <arg name="world_frame" default="world"/>
+    <arg name="crop_frame" default="world"/>
+    <arg name="move_frame" default="world"/>
+    <arg name="obj_export_frame" default="world"/>
+    <!-- <arg name="crop_frame" default="camera_depth_optical_frame"/> -->
+
+    <arg name="depth_scale" default="0.001"/>
+
+<!--     <arg name="crop_min_x" default="-1.5"/>
+    <arg name="crop_min_y" default="-1.5"/>
+    <arg name="crop_min_z" default="-1.5"/>
+    <arg name="crop_max_x" default="+1.5"/>
+    <arg name="crop_max_y" default="+1.5"/>
+    <arg name="crop_max_z" default="+1.5"/> -->
+
+    <arg name="enable_flyingpixels_filter" default="true"/>
+    <arg name="enable_voxel_filter" default="true"/>
+    <arg name="enable_radius_filter" default="true"/>
+    
+    <arg name="flyingpixels_group_size" default="1024"/>
+    <arg name="voxel_group_size" default="8"/>
+    <arg name="radius_group_size" default="1024"/>
+    
+    <arg name="enable_parallel_add_pointcloud" default="true"/>
+    <arg name="enable_parallel_transformations" default="true"/>
+    <arg name="enable_parallel_crop" default="true"/>
+    <arg name="enable_parallel_voxel_filter" default="true"/>
+    <arg name="enable_parallel_radius_filter" default="true"/>
+    
+    <arg name="flyingpixels_filter_threshold" default="0.3"/>
+    <arg name="flyingpixels_filter_size" default="4"/>
+    <arg name="flyingpixels_filter_enable_rot45" default="false"/>
+
+    <arg name="object_min_area" default="0.04"/>
+    <!-- <arg name="object_min_area" default="0.1"/> -->
+    <!-- <arg name="voxel_occupancy_lifetime" default="6"/> -->
+    <arg name="voxel_occupancy_lifetime" default="10"/>
+    
+    <!-- Default -->
+<!--     <arg name="voxel_filter_min_x" default="-4"/>
+    <arg name="voxel_filter_min_y" default="-4"/>
+    <arg name="voxel_filter_min_z" default="-1"/>
+    <arg name="voxel_filter_max_x" default="+4"/>
+    <arg name="voxel_filter_max_y" default="+4"/>
+    <arg name="voxel_filter_max_z" default="+1.5"/> -->
+<!--     <arg name="voxel_filter_size_x" default="0.1"/> 
+    <arg name="voxel_filter_size_y" default="0.1"/>
+    <arg name="voxel_filter_size_z" default="0.2"/>  -->   
+<!--     <arg name="voxel_filter_size_x" default="0.05"/>
+    <arg name="voxel_filter_size_y" default="0.05"/>
+    <arg name="voxel_filter_size_z" default="0.05"/>  -->   
+
+<!--     <arg name="voxel_filter_size_x" default="0.05"/>
+    <arg name="voxel_filter_size_y" default="0.05"/>
+    <arg name="voxel_filter_size_z" default="0.05"/>    
+
+ -->    <!-- <arg name="voxel_filter_size_x" default="0.53333"/>  -->
+    <!-- <arg name="voxel_filter_size_y" default="0.53333"/> -->
+    <!-- <arg name="voxel_filter_size_z" default="0.05"/>     -->
+    
+    <!-- Debug Coarse -->
+<!--     <arg name="voxel_filter_min_x" default="-0.5" />
+    <arg name="voxel_filter_min_y" default="-0.5" />
+    <arg name="voxel_filter_min_z" default="-0.75" />
+    <arg name="voxel_filter_max_x" default="+0.5" />
+    <arg name="voxel_filter_max_y" default="+0.5" />
+    <arg name="voxel_filter_max_z" default="+1.5" />
+
+    <arg name="voxel_filter_size_x" default="0.1"/> 
+    <arg name="voxel_filter_size_y" default="0.1"/>
+    <arg name="voxel_filter_size_z" default="0.2"/> -->
+    <!-- <arg name="voxel_filter_size_z" default="0.1"/> -->
+    <!-- <arg name="voxel_filter_size_z" default="0.02"/> -->
+    
+    <!-- RavE Livox Hafen -->
+    <arg name="voxel_filter_min_x" default="-10"/>
+    <arg name="voxel_filter_min_y" default="-20"/>
+    <arg name="voxel_filter_min_z" default="-1"/>
+    <arg name="voxel_filter_max_x" default="+30"/>
+    <arg name="voxel_filter_max_y" default="+20"/>
+    <arg name="voxel_filter_max_z" default="+1.5"/>    
+    <arg name="voxel_filter_size_x" default="0.1"/>
+    <arg name="voxel_filter_size_y" default="0.1"/>
+    <arg name="voxel_filter_size_z" default="0.12"/>
+    <arg name="crop_min_x" default="-10"/>
+    <arg name="crop_min_y" default="-20"/>
+    <arg name="crop_min_z" default="-1"/>
+    <arg name="crop_max_x" default="+30"/>
+    <arg name="crop_max_y" default="+20"/>
+    <arg name="crop_max_z" default="+1.5"/>
+
+    <!-- RavE Livox Hafen Scaled to Home Office -->
+<!--     <arg name="voxel_filter_min_x" default="-4"/>
+    <arg name="voxel_filter_min_y" default="-4"/>
+    <arg name="voxel_filter_min_z" default="-1"/>
+    <arg name="voxel_filter_max_x" default="+4"/>
+    <arg name="voxel_filter_max_y" default="+4"/>
+    <arg name="voxel_filter_max_z" default="+1.5"/>    
+    <arg name="voxel_filter_size_x" default="0.125"/>
+    <arg name="voxel_filter_size_y" default="0.125"/>
+    <arg name="voxel_filter_size_z" default="0.15"/> -->
+    
+    <!-- RavE Hafen Kameras -->
+<!--     <arg name="voxel_filter_min_x" default="-150"/>
+    <arg name="voxel_filter_min_y" default="-80"/>
+    <arg name="voxel_filter_min_z" default="0"/>
+    <arg name="voxel_filter_max_x" default="+150"/>
+    <arg name="voxel_filter_max_y" default="+80"/>
+    <arg name="voxel_filter_max_z" default="0"/>    
+    <arg name="voxel_filter_size_x" default="0.1"/>
+    <arg name="voxel_filter_size_y" default="0.1"/>
+    <arg name="voxel_filter_size_z" default="1"/> -->
+    
+    <arg name="voxel_filter_enable_average" default="true"/>
+    
+    <arg name="radius_filter_min_x" default="-2"/>
+    <arg name="radius_filter_min_y" default="-2"/>
+    <arg name="radius_filter_min_z" default="-2"/>
+    <arg name="radius_filter_max_x" default="+2"/>
+    <arg name="radius_filter_max_y" default="+2"/>
+    <arg name="radius_filter_max_z" default="+2"/>
+    
+    <arg name="radius_filter_radius" default="0.05"/>
+    <arg name="radius_filter_min_neighbors" default="0"/>
+    
+    <arg name="shader_path" default="$(find gpu_depthmap_fusion)/shader/"/>
+    
+
+    <node pkg="gpu_depthmap_fusion" type="gpu_depthmap_fusion_node" name="$(arg name)" output="screen" if="$(eval arg('mode') == 'normal')" required="true">
+        <param name="num_maps" value="$(arg num_depthmaps)" />
+        <param name="num_seqs" value="$(arg num_pointclouds)" />
+        <param name="in_dm_queue_size" value="$(arg in_dm_queue_size)" />
+        <param name="in_ps_queue_size" value="$(arg in_ps_queue_size)" />
+        <param name="out_queue_size" value="$(arg out_queue_size)" />
+        <remap from="~/in/Depthmap/0" to="$(arg depthmap_topic_0)" />
+        <remap from="~/in/Depthmap/1" to="$(arg depthmap_topic_1)" />
+        <remap from="~/in/Depthmap/2" to="$(arg depthmap_topic_2)" />
+        <remap from="~/in/Depthmap/3" to="$(arg depthmap_topic_3)" />
+        <remap from="~/in/Depthmap/4" to="$(arg depthmap_topic_4)" />
+        <remap from="~/in/Depthmap/5" to="$(arg depthmap_topic_5)" />
+
+        <remap from="~/in/CameraInfo/0" to="$(arg caminfo_topic_0)" />
+        <remap from="~/in/CameraInfo/1" to="$(arg caminfo_topic_1)" />
+        <remap from="~/in/CameraInfo/2" to="$(arg caminfo_topic_2)" />
+        <remap from="~/in/CameraInfo/3" to="$(arg caminfo_topic_3)" />
+        <remap from="~/in/CameraInfo/4" to="$(arg caminfo_topic_4)" />
+        <remap from="~/in/CameraInfo/5" to="$(arg caminfo_topic_5)" />
+
+        <remap from="~/in/Pointcloud/0" to="$(arg pcl_topic_0)" />
+        <remap from="~/in/Pointcloud/1" to="$(arg pcl_topic_1)" />
+        <remap from="~/in/Pointcloud/2" to="$(arg pcl_topic_2)" />
+        <remap from="~/in/Pointcloud/3" to="$(arg pcl_topic_3)" />
+        <remap from="~/in/Pointcloud/4" to="$(arg pcl_topic_4)" />
+        <remap from="~/in/Pointcloud/5" to="$(arg pcl_topic_5)" />
+
+        <param name="point_sequence_aggregation_timespan" value="$(arg point_sequence_aggregation_timespan)" />
+        <param name="point_sequence_flying_pixel_filter_threshold" value="$(arg point_sequence_flying_pixel_filter_threshold)" />
+        <param name="point_sequence_flying_pixel_filter_size" value="$(arg point_sequence_flying_pixel_filter_size)" />
+
+        <param name="resample_rate" value="$(arg resample_rate)" />
+
+        <param name="world_frame" value="$(arg world_frame)" />
+        <param name="crop_frame" value="$(arg crop_frame)" />
+        <param name="move_frame" value="$(arg move_frame)" />
+        <param name="obj_export_frame" value="$(arg obj_export_frame)" />
+
+        <param name="enable_debug_output" value="$(arg enable_debug_output)" />
+        <param name="shader_path" value="$(arg shader_path)" />
+
+        <param name="depth_scale" value="$(arg depth_scale)" />
+        
+        <param name="crop_min_x" value="$(arg crop_min_x)" />
+        <param name="crop_min_y" value="$(arg crop_min_y)" />
+        <param name="crop_min_z" value="$(arg crop_min_z)" />
+        <param name="crop_max_x" value="$(arg crop_max_x)" />
+        <param name="crop_max_y" value="$(arg crop_max_y)" />
+        <param name="crop_max_z" value="$(arg crop_max_z)" />
+
+        <param name="enable_flyingpixels_filter" value="$(arg enable_flyingpixels_filter)" />
+        <param name="enable_voxel_filter" value="$(arg enable_voxel_filter)" />
+        <param name="enable_radius_filter" value="$(arg enable_radius_filter)" />
+
+        <param name="flyingpixels_filter_threshold" value="$(arg flyingpixels_filter_threshold)" />
+        <param name="flyingpixels_filter_size" value="$(arg flyingpixels_filter_size)" />
+        <param name="flyingpixels_filter_enable_rot45" value="$(arg flyingpixels_filter_enable_rot45)" />
+
+        <param name="voxel_occupancy_lifetime" value="$(arg voxel_occupancy_lifetime)" />
+        <param name="object_min_area" value="$(arg object_min_area)" />
+
+        <param name="voxel_filter_min_x" value="$(arg voxel_filter_min_x)" />
+        <param name="voxel_filter_min_y" value="$(arg voxel_filter_min_y)" />
+        <param name="voxel_filter_min_z" value="$(arg voxel_filter_min_z)" />
+        <param name="voxel_filter_max_x" value="$(arg voxel_filter_max_x)" />
+        <param name="voxel_filter_max_y" value="$(arg voxel_filter_max_y)" />
+        <param name="voxel_filter_max_z" value="$(arg voxel_filter_max_z)" />
+
+        <param name="voxel_filter_size_x" value="$(arg voxel_filter_size_x)" />
+        <param name="voxel_filter_size_y" value="$(arg voxel_filter_size_y)" />
+        <param name="voxel_filter_size_z" value="$(arg voxel_filter_size_z)" />
+
+        <param name="voxel_filter_enable_average" value="$(arg voxel_filter_enable_average)" />
+
+        <param name="radius_filter_min_x" value="$(arg radius_filter_min_x)" />
+        <param name="radius_filter_min_y" value="$(arg radius_filter_min_y)" />
+        <param name="radius_filter_min_z" value="$(arg radius_filter_min_z)" />
+        <param name="radius_filter_max_x" value="$(arg radius_filter_max_x)" />
+        <param name="radius_filter_max_y" value="$(arg radius_filter_max_y)" />
+        <param name="radius_filter_max_z" value="$(arg radius_filter_max_z)" />
+
+        <param name="radius_filter_radius" value="$(arg radius_filter_radius)" />
+        <param name="radius_filter_min_neighbors" value="$(arg radius_filter_min_neighbors)" />
+
+        <param name="enable_parallel_add_pointcloud" value="$(arg enable_parallel_add_pointcloud)" />
+        <param name="enable_parallel_transformations" value="$(arg enable_parallel_transformations)" />
+        <param name="enable_parallel_crop" value="$(arg enable_parallel_crop)" />
+        <param name="enable_parallel_voxel_filter" value="$(arg enable_parallel_voxel_filter)" />
+        <param name="enable_parallel_radius_filter" value="$(arg enable_parallel_radius_filter)" />
+        
+    </node>
+    
+
+    <arg name="debug_launch_prefix" default="konsole -e gdb -tui -x '$(find gpu_depthmap_fusion)/launch/gdb.init' --args "/>
+    <node pkg="gpu_depthmap_fusion" type="gpu_depthmap_fusion_node" name="$(arg name)" output="screen" if="$(eval arg('mode') == 'debug')" 
+            launch-prefix="$(arg debug_launch_prefix)"  required="true">
+        <param name="num_maps" value="$(arg num_depthmaps)" />
+        <param name="num_seqs" value="$(arg num_pointclouds)" />
+        <param name="in_dm_queue_size" value="$(arg in_dm_queue_size)" />
+        <param name="in_ps_queue_size" value="$(arg in_ps_queue_size)" />
+        <param name="out_queue_size" value="$(arg out_queue_size)" />
+        <remap from="~/in/Depthmap/0" to="$(arg depthmap_topic_0)" />
+        <remap from="~/in/Depthmap/1" to="$(arg depthmap_topic_1)" />
+        <remap from="~/in/Depthmap/2" to="$(arg depthmap_topic_2)" />
+        <remap from="~/in/Depthmap/3" to="$(arg depthmap_topic_3)" />
+        <remap from="~/in/Depthmap/4" to="$(arg depthmap_topic_4)" />
+        <remap from="~/in/Depthmap/5" to="$(arg depthmap_topic_5)" />
+
+        <remap from="~/in/CameraInfo/0" to="$(arg caminfo_topic_0)" />
+        <remap from="~/in/CameraInfo/1" to="$(arg caminfo_topic_1)" />
+        <remap from="~/in/CameraInfo/2" to="$(arg caminfo_topic_2)" />
+        <remap from="~/in/CameraInfo/3" to="$(arg caminfo_topic_3)" />
+        <remap from="~/in/CameraInfo/4" to="$(arg caminfo_topic_4)" />
+        <remap from="~/in/CameraInfo/5" to="$(arg caminfo_topic_5)" />
+
+        <remap from="~/in/Pointcloud/0" to="$(arg pcl_topic_0)" />
+        <remap from="~/in/Pointcloud/1" to="$(arg pcl_topic_1)" />
+        <remap from="~/in/Pointcloud/2" to="$(arg pcl_topic_2)" />
+        <remap from="~/in/Pointcloud/3" to="$(arg pcl_topic_3)" />
+        <remap from="~/in/Pointcloud/4" to="$(arg pcl_topic_4)" />
+        <remap from="~/in/Pointcloud/5" to="$(arg pcl_topic_5)" />
+
+        <param name="point_sequence_aggregation_timespan" value="$(arg point_sequence_aggregation_timespan)" />
+        <param name="point_sequence_flying_pixel_filter_threshold" value="$(arg point_sequence_flying_pixel_filter_threshold)" />
+        <param name="point_sequence_flying_pixel_filter_size" value="$(arg point_sequence_flying_pixel_filter_size)" />
+
+        <param name="resample_rate" value="$(arg resample_rate)" />
+
+        <param name="world_frame" value="$(arg world_frame)" />
+        <param name="crop_frame" value="$(arg crop_frame)" />
+        <param name="move_frame" value="$(arg move_frame)" />
+        <param name="obj_export_frame" value="$(arg obj_export_frame)" />
+
+        <param name="enable_debug_output" value="$(arg enable_debug_output)" />
+        <param name="shader_path" value="$(arg shader_path)" />
+
+        <param name="depth_scale" value="$(arg depth_scale)" />
+        
+        <param name="crop_min_x" value="$(arg crop_min_x)" />
+        <param name="crop_min_y" value="$(arg crop_min_y)" />
+        <param name="crop_min_z" value="$(arg crop_min_z)" />
+        <param name="crop_max_x" value="$(arg crop_max_x)" />
+        <param name="crop_max_y" value="$(arg crop_max_y)" />
+        <param name="crop_max_z" value="$(arg crop_max_z)" />
+
+        <param name="enable_flyingpixels_filter" value="$(arg enable_flyingpixels_filter)" />
+        <param name="enable_voxel_filter" value="$(arg enable_voxel_filter)" />
+        <param name="enable_radius_filter" value="$(arg enable_radius_filter)" />
+
+        <param name="flyingpixels_filter_threshold" value="$(arg flyingpixels_filter_threshold)" />
+        <param name="flyingpixels_filter_size" value="$(arg flyingpixels_filter_size)" />
+        <param name="flyingpixels_filter_enable_rot45" value="$(arg flyingpixels_filter_enable_rot45)" />
+
+        <param name="voxel_occupancy_lifetime" value="$(arg voxel_occupancy_lifetime)" />
+        <param name="object_min_area" value="$(arg object_min_area)" />
+
+        <param name="voxel_filter_min_x" value="$(arg voxel_filter_min_x)" />
+        <param name="voxel_filter_min_y" value="$(arg voxel_filter_min_y)" />
+        <param name="voxel_filter_min_z" value="$(arg voxel_filter_min_z)" />
+        <param name="voxel_filter_max_x" value="$(arg voxel_filter_max_x)" />
+        <param name="voxel_filter_max_y" value="$(arg voxel_filter_max_y)" />
+        <param name="voxel_filter_max_z" value="$(arg voxel_filter_max_z)" />
+
+        <param name="voxel_filter_size_x" value="$(arg voxel_filter_size_x)" />
+        <param name="voxel_filter_size_y" value="$(arg voxel_filter_size_y)" />
+        <param name="voxel_filter_size_z" value="$(arg voxel_filter_size_z)" />
+
+        <param name="voxel_filter_enable_average" value="$(arg voxel_filter_enable_average)" />
+
+        <param name="radius_filter_min_x" value="$(arg radius_filter_min_x)" />
+        <param name="radius_filter_min_y" value="$(arg radius_filter_min_y)" />
+        <param name="radius_filter_min_z" value="$(arg radius_filter_min_z)" />
+        <param name="radius_filter_max_x" value="$(arg radius_filter_max_x)" />
+        <param name="radius_filter_max_y" value="$(arg radius_filter_max_y)" />
+        <param name="radius_filter_max_z" value="$(arg radius_filter_max_z)" />
+
+        <param name="radius_filter_radius" value="$(arg radius_filter_radius)" />
+        <param name="radius_filter_min_neighbors" value="$(arg radius_filter_min_neighbors)" />
+
+        <param name="enable_parallel_add_pointcloud" value="$(arg enable_parallel_add_pointcloud)" />
+        <param name="enable_parallel_transformations" value="$(arg enable_parallel_transformations)" />
+        <param name="enable_parallel_crop" value="$(arg enable_parallel_crop)" />
+        <param name="enable_parallel_voxel_filter" value="$(arg enable_parallel_voxel_filter)" />
+        <param name="enable_parallel_radius_filter" value="$(arg enable_parallel_radius_filter)" />
+
+    </node>
+
+    <arg name="gdbgui_launch_prefix" default="echo $(find mft_ros_utils)/scripts/call_gdbgui.sh "/>
+    <!-- <arg name="gdbgui_launch_prefix" default="echo gdbgui -\-args "/> -->
+    <node pkg="gpu_depthmap_fusion" type="gpu_depthmap_fusion_node" name="$(arg name)" output="screen" if="$(eval arg('mode') == 'gdbgui')" 
+            launch-prefix="$(arg gdbgui_launch_prefix)" required="true">
+        <param name="num_maps" value="$(arg num_depthmaps)" />
+        <param name="num_seqs" value="$(arg num_pointclouds)" />
+        <param name="in_dm_queue_size" value="$(arg in_dm_queue_size)" />
+        <param name="in_ps_queue_size" value="$(arg in_ps_queue_size)" />
+        <param name="out_queue_size" value="$(arg out_queue_size)" />
+        <remap from="~/in/Depthmap/0" to="$(arg depthmap_topic_0)" />
+        <remap from="~/in/Depthmap/1" to="$(arg depthmap_topic_1)" />
+        <remap from="~/in/Depthmap/2" to="$(arg depthmap_topic_2)" />
+        <remap from="~/in/Depthmap/3" to="$(arg depthmap_topic_3)" />
+        <remap from="~/in/Depthmap/4" to="$(arg depthmap_topic_4)" />
+        <remap from="~/in/Depthmap/5" to="$(arg depthmap_topic_5)" />
+
+        <remap from="~/in/CameraInfo/0" to="$(arg caminfo_topic_0)" />
+        <remap from="~/in/CameraInfo/1" to="$(arg caminfo_topic_1)" />
+        <remap from="~/in/CameraInfo/2" to="$(arg caminfo_topic_2)" />
+        <remap from="~/in/CameraInfo/3" to="$(arg caminfo_topic_3)" />
+        <remap from="~/in/CameraInfo/4" to="$(arg caminfo_topic_4)" />
+        <remap from="~/in/CameraInfo/5" to="$(arg caminfo_topic_5)" />
+
+        <remap from="~/in/Pointcloud/0" to="$(arg pcl_topic_0)" />
+        <remap from="~/in/Pointcloud/1" to="$(arg pcl_topic_1)" />
+        <remap from="~/in/Pointcloud/2" to="$(arg pcl_topic_2)" />
+        <remap from="~/in/Pointcloud/3" to="$(arg pcl_topic_3)" />
+        <remap from="~/in/Pointcloud/4" to="$(arg pcl_topic_4)" />
+        <remap from="~/in/Pointcloud/5" to="$(arg pcl_topic_5)" />
+
+        <param name="point_sequence_aggregation_timespan" value="$(arg point_sequence_aggregation_timespan)" />
+        <param name="point_sequence_flying_pixel_filter_threshold" value="$(arg point_sequence_flying_pixel_filter_threshold)" />
+        <param name="point_sequence_flying_pixel_filter_size" value="$(arg point_sequence_flying_pixel_filter_size)" />
+
+        <param name="resample_rate" value="$(arg resample_rate)" />
+
+        <param name="world_frame" value="$(arg world_frame)" />
+        <param name="crop_frame" value="$(arg crop_frame)" />
+        <param name="move_frame" value="$(arg move_frame)" />
+        <param name="obj_export_frame" value="$(arg obj_export_frame)" />
+
+        <param name="enable_debug_output" value="$(arg enable_debug_output)" />
+        <param name="shader_path" value="$(arg shader_path)" />
+
+        <param name="depth_scale" value="$(arg depth_scale)" />
+        
+        <param name="crop_min_x" value="$(arg crop_min_x)" />
+        <param name="crop_min_y" value="$(arg crop_min_y)" />
+        <param name="crop_min_z" value="$(arg crop_min_z)" />
+        <param name="crop_max_x" value="$(arg crop_max_x)" />
+        <param name="crop_max_y" value="$(arg crop_max_y)" />
+        <param name="crop_max_z" value="$(arg crop_max_z)" />
+
+        <param name="enable_flyingpixels_filter" value="$(arg enable_flyingpixels_filter)" />
+        <param name="enable_voxel_filter" value="$(arg enable_voxel_filter)" />
+        <param name="enable_radius_filter" value="$(arg enable_radius_filter)" />
+
+        <param name="flyingpixels_filter_threshold" value="$(arg flyingpixels_filter_threshold)" />
+        <param name="flyingpixels_filter_size" value="$(arg flyingpixels_filter_size)" />
+        <param name="flyingpixels_filter_enable_rot45" value="$(arg flyingpixels_filter_enable_rot45)" />
+
+        <param name="voxel_occupancy_lifetime" value="$(arg voxel_occupancy_lifetime)" />
+        <param name="object_min_area" value="$(arg object_min_area)" />
+
+        <param name="voxel_filter_min_x" value="$(arg voxel_filter_min_x)" />
+        <param name="voxel_filter_min_y" value="$(arg voxel_filter_min_y)" />
+        <param name="voxel_filter_min_z" value="$(arg voxel_filter_min_z)" />
+        <param name="voxel_filter_max_x" value="$(arg voxel_filter_max_x)" />
+        <param name="voxel_filter_max_y" value="$(arg voxel_filter_max_y)" />
+        <param name="voxel_filter_max_z" value="$(arg voxel_filter_max_z)" />
+
+        <param name="voxel_filter_size_x" value="$(arg voxel_filter_size_x)" />
+        <param name="voxel_filter_size_y" value="$(arg voxel_filter_size_y)" />
+        <param name="voxel_filter_size_z" value="$(arg voxel_filter_size_z)" />
+
+        <param name="voxel_filter_enable_average" value="$(arg voxel_filter_enable_average)" />
+
+        <param name="radius_filter_min_x" value="$(arg radius_filter_min_x)" />
+        <param name="radius_filter_min_y" value="$(arg radius_filter_min_y)" />
+        <param name="radius_filter_min_z" value="$(arg radius_filter_min_z)" />
+        <param name="radius_filter_max_x" value="$(arg radius_filter_max_x)" />
+        <param name="radius_filter_max_y" value="$(arg radius_filter_max_y)" />
+        <param name="radius_filter_max_z" value="$(arg radius_filter_max_z)" />
+
+        <param name="radius_filter_radius" value="$(arg radius_filter_radius)" />
+        <param name="radius_filter_min_neighbors" value="$(arg radius_filter_min_neighbors)" />
+
+        <param name="enable_parallel_add_pointcloud" value="$(arg enable_parallel_add_pointcloud)" />
+        <param name="enable_parallel_transformations" value="$(arg enable_parallel_transformations)" />
+        <param name="enable_parallel_crop" value="$(arg enable_parallel_crop)" />
+        <param name="enable_parallel_voxel_filter" value="$(arg enable_parallel_voxel_filter)" />
+        <param name="enable_parallel_radius_filter" value="$(arg enable_parallel_radius_filter)" />
+
+    </node>
+
+    <arg name="profiling_launch_prefix" default="valgrind --tool=callgrind  "/>
+    <node pkg="gpu_depthmap_fusion" type="gpu_depthmap_fusion_node" name="$(arg name)" output="screen" if="$(eval arg('mode') == 'profiling')" 
+            launch-prefix="$(arg profiling_launch_prefix)" required="true">
+        <param name="num_maps" value="$(arg num_depthmaps)" />
+        <param name="num_seqs" value="$(arg num_pointclouds)" />
+        <param name="in_dm_queue_size" value="$(arg in_dm_queue_size)" />
+        <param name="in_ps_queue_size" value="$(arg in_ps_queue_size)" />
+        <param name="out_queue_size" value="$(arg out_queue_size)" />
+        <remap from="~/in/Depthmap/0" to="$(arg depthmap_topic_0)" />
+        <remap from="~/in/Depthmap/1" to="$(arg depthmap_topic_1)" />
+        <remap from="~/in/Depthmap/2" to="$(arg depthmap_topic_2)" />
+        <remap from="~/in/Depthmap/3" to="$(arg depthmap_topic_3)" />
+        <remap from="~/in/Depthmap/4" to="$(arg depthmap_topic_4)" />
+        <remap from="~/in/Depthmap/5" to="$(arg depthmap_topic_5)" />
+
+        <remap from="~/in/CameraInfo/0" to="$(arg caminfo_topic_0)" />
+        <remap from="~/in/CameraInfo/1" to="$(arg caminfo_topic_1)" />
+        <remap from="~/in/CameraInfo/2" to="$(arg caminfo_topic_2)" />
+        <remap from="~/in/CameraInfo/3" to="$(arg caminfo_topic_3)" />
+        <remap from="~/in/CameraInfo/4" to="$(arg caminfo_topic_4)" />
+        <remap from="~/in/CameraInfo/5" to="$(arg caminfo_topic_5)" />
+
+        <remap from="~/in/Pointcloud/0" to="$(arg pcl_topic_0)" />
+        <remap from="~/in/Pointcloud/1" to="$(arg pcl_topic_1)" />
+        <remap from="~/in/Pointcloud/2" to="$(arg pcl_topic_2)" />
+        <remap from="~/in/Pointcloud/3" to="$(arg pcl_topic_3)" />
+        <remap from="~/in/Pointcloud/4" to="$(arg pcl_topic_4)" />
+        <remap from="~/in/Pointcloud/5" to="$(arg pcl_topic_5)" />
+
+        <param name="point_sequence_aggregation_timespan" value="$(arg point_sequence_aggregation_timespan)" />
+        <param name="point_sequence_flying_pixel_filter_threshold" value="$(arg point_sequence_flying_pixel_filter_threshold)" />
+        <param name="point_sequence_flying_pixel_filter_size" value="$(arg point_sequence_flying_pixel_filter_size)" />
+
+        <param name="resample_rate" value="$(arg resample_rate)" />
+
+        <param name="world_frame" value="$(arg world_frame)" />
+        <param name="crop_frame" value="$(arg crop_frame)" />
+        <param name="move_frame" value="$(arg move_frame)" />
+        <param name="obj_export_frame" value="$(arg obj_export_frame)" />
+
+        <param name="enable_debug_output" value="$(arg enable_debug_output)" />
+        <param name="shader_path" value="$(arg shader_path)" />
+
+        <param name="depth_scale" value="$(arg depth_scale)" />
+        
+        <param name="crop_min_x" value="$(arg crop_min_x)" />
+        <param name="crop_min_y" value="$(arg crop_min_y)" />
+        <param name="crop_min_z" value="$(arg crop_min_z)" />
+        <param name="crop_max_x" value="$(arg crop_max_x)" />
+        <param name="crop_max_y" value="$(arg crop_max_y)" />
+        <param name="crop_max_z" value="$(arg crop_max_z)" />
+
+        <param name="enable_flyingpixels_filter" value="$(arg enable_flyingpixels_filter)" />
+        <param name="enable_voxel_filter" value="$(arg enable_voxel_filter)" />
+        <param name="enable_radius_filter" value="$(arg enable_radius_filter)" />
+
+        <param name="flyingpixels_filter_threshold" value="$(arg flyingpixels_filter_threshold)" />
+        <param name="flyingpixels_filter_size" value="$(arg flyingpixels_filter_size)" />
+        <param name="flyingpixels_filter_enable_rot45" value="$(arg flyingpixels_filter_enable_rot45)" />
+
+        <param name="voxel_occupancy_lifetime" value="$(arg voxel_occupancy_lifetime)" />
+        <param name="object_min_area" value="$(arg object_min_area)" />
+
+        <param name="voxel_filter_min_x" value="$(arg voxel_filter_min_x)" />
+        <param name="voxel_filter_min_y" value="$(arg voxel_filter_min_y)" />
+        <param name="voxel_filter_min_z" value="$(arg voxel_filter_min_z)" />
+        <param name="voxel_filter_max_x" value="$(arg voxel_filter_max_x)" />
+        <param name="voxel_filter_max_y" value="$(arg voxel_filter_max_y)" />
+        <param name="voxel_filter_max_z" value="$(arg voxel_filter_max_z)" />
+
+        <param name="voxel_filter_size_x" value="$(arg voxel_filter_size_x)" />
+        <param name="voxel_filter_size_y" value="$(arg voxel_filter_size_y)" />
+        <param name="voxel_filter_size_z" value="$(arg voxel_filter_size_z)" />
+
+        <param name="voxel_filter_enable_average" value="$(arg voxel_filter_enable_average)" />
+
+        <param name="radius_filter_min_x" value="$(arg radius_filter_min_x)" />
+        <param name="radius_filter_min_y" value="$(arg radius_filter_min_y)" />
+        <param name="radius_filter_min_z" value="$(arg radius_filter_min_z)" />
+        <param name="radius_filter_max_x" value="$(arg radius_filter_max_x)" />
+        <param name="radius_filter_max_y" value="$(arg radius_filter_max_y)" />
+        <param name="radius_filter_max_z" value="$(arg radius_filter_max_z)" />
+
+        <param name="radius_filter_radius" value="$(arg radius_filter_radius)" />
+        <param name="radius_filter_min_neighbors" value="$(arg radius_filter_min_neighbors)" />
+
+        <param name="enable_parallel_add_pointcloud" value="$(arg enable_parallel_add_pointcloud)" />
+        <param name="enable_parallel_transformations" value="$(arg enable_parallel_transformations)" />
+        <param name="enable_parallel_crop" value="$(arg enable_parallel_crop)" />
+        <param name="enable_parallel_voxel_filter" value="$(arg enable_parallel_voxel_filter)" />
+        <param name="enable_parallel_radius_filter" value="$(arg enable_parallel_radius_filter)" />
+
+    </node>
+
+    <arg name="memcheck_launch_prefix" default="valgrind --tool=memcheck --leak-check=full  "/>
+    <node pkg="gpu_depthmap_fusion" type="gpu_depthmap_fusion_node" name="$(arg name)" output="screen" if="$(eval arg('mode') == 'memcheck')" 
+            launch-prefix="$(arg memcheck_launch_prefix)"  required="true">
+        <param name="num_maps" value="$(arg num_depthmaps)" />
+        <param name="num_seqs" value="$(arg num_pointclouds)" />
+        <param name="in_dm_queue_size" value="$(arg in_dm_queue_size)" />
+        <param name="in_ps_queue_size" value="$(arg in_ps_queue_size)" />
+        <param name="out_queue_size" value="$(arg out_queue_size)" />
+        <remap from="~/in/Depthmap/0" to="$(arg depthmap_topic_0)" />
+        <remap from="~/in/Depthmap/1" to="$(arg depthmap_topic_1)" />
+        <remap from="~/in/Depthmap/2" to="$(arg depthmap_topic_2)" />
+        <remap from="~/in/Depthmap/3" to="$(arg depthmap_topic_3)" />
+        <remap from="~/in/Depthmap/4" to="$(arg depthmap_topic_4)" />
+        <remap from="~/in/Depthmap/5" to="$(arg depthmap_topic_5)" />
+
+        <remap from="~/in/CameraInfo/0" to="$(arg caminfo_topic_0)" />
+        <remap from="~/in/CameraInfo/1" to="$(arg caminfo_topic_1)" />
+        <remap from="~/in/CameraInfo/2" to="$(arg caminfo_topic_2)" />
+        <remap from="~/in/CameraInfo/3" to="$(arg caminfo_topic_3)" />
+        <remap from="~/in/CameraInfo/4" to="$(arg caminfo_topic_4)" />
+        <remap from="~/in/CameraInfo/5" to="$(arg caminfo_topic_5)" />
+
+        <remap from="~/in/Pointcloud/0" to="$(arg pcl_topic_0)" />
+        <remap from="~/in/Pointcloud/1" to="$(arg pcl_topic_1)" />
+        <remap from="~/in/Pointcloud/2" to="$(arg pcl_topic_2)" />
+        <remap from="~/in/Pointcloud/3" to="$(arg pcl_topic_3)" />
+        <remap from="~/in/Pointcloud/4" to="$(arg pcl_topic_4)" />
+        <remap from="~/in/Pointcloud/5" to="$(arg pcl_topic_5)" />
+
+        <param name="point_sequence_aggregation_timespan" value="$(arg point_sequence_aggregation_timespan)" />
+        <param name="point_sequence_flying_pixel_filter_threshold" value="$(arg point_sequence_flying_pixel_filter_threshold)" />
+        <param name="point_sequence_flying_pixel_filter_size" value="$(arg point_sequence_flying_pixel_filter_size)" />
+
+        <param name="resample_rate" value="$(arg resample_rate)" />
+
+        <param name="world_frame" value="$(arg world_frame)" />
+        <param name="crop_frame" value="$(arg crop_frame)" />
+        <param name="move_frame" value="$(arg move_frame)" />
+        <param name="obj_export_frame" value="$(arg obj_export_frame)" />
+
+        <param name="enable_debug_output" value="$(arg enable_debug_output)" />
+        <param name="shader_path" value="$(arg shader_path)" />
+
+        <param name="depth_scale" value="$(arg depth_scale)" />
+        
+        <param name="crop_min_x" value="$(arg crop_min_x)" />
+        <param name="crop_min_y" value="$(arg crop_min_y)" />
+        <param name="crop_min_z" value="$(arg crop_min_z)" />
+        <param name="crop_max_x" value="$(arg crop_max_x)" />
+        <param name="crop_max_y" value="$(arg crop_max_y)" />
+        <param name="crop_max_z" value="$(arg crop_max_z)" />
+
+        <param name="enable_flyingpixels_filter" value="$(arg enable_flyingpixels_filter)" />
+        <param name="enable_voxel_filter" value="$(arg enable_voxel_filter)" />
+        <param name="enable_radius_filter" value="$(arg enable_radius_filter)" />
+
+        <param name="flyingpixels_filter_threshold" value="$(arg flyingpixels_filter_threshold)" />
+        <param name="flyingpixels_filter_size" value="$(arg flyingpixels_filter_size)" />
+        <param name="flyingpixels_filter_enable_rot45" value="$(arg flyingpixels_filter_enable_rot45)" />
+
+        <param name="voxel_occupancy_lifetime" value="$(arg voxel_occupancy_lifetime)" />
+        <param name="object_min_area" value="$(arg object_min_area)" />
+
+        <param name="voxel_filter_min_x" value="$(arg voxel_filter_min_x)" />
+        <param name="voxel_filter_min_y" value="$(arg voxel_filter_min_y)" />
+        <param name="voxel_filter_min_z" value="$(arg voxel_filter_min_z)" />
+        <param name="voxel_filter_max_x" value="$(arg voxel_filter_max_x)" />
+        <param name="voxel_filter_max_y" value="$(arg voxel_filter_max_y)" />
+        <param name="voxel_filter_max_z" value="$(arg voxel_filter_max_z)" />
+
+        <param name="voxel_filter_size_x" value="$(arg voxel_filter_size_x)" />
+        <param name="voxel_filter_size_y" value="$(arg voxel_filter_size_y)" />
+        <param name="voxel_filter_size_z" value="$(arg voxel_filter_size_z)" />
+
+        <param name="voxel_filter_enable_average" value="$(arg voxel_filter_enable_average)" />
+
+        <param name="radius_filter_min_x" value="$(arg radius_filter_min_x)" />
+        <param name="radius_filter_min_y" value="$(arg radius_filter_min_y)" />
+        <param name="radius_filter_min_z" value="$(arg radius_filter_min_z)" />
+        <param name="radius_filter_max_x" value="$(arg radius_filter_max_x)" />
+        <param name="radius_filter_max_y" value="$(arg radius_filter_max_y)" />
+        <param name="radius_filter_max_z" value="$(arg radius_filter_max_z)" />
+
+        <param name="radius_filter_radius" value="$(arg radius_filter_radius)" />
+        <param name="radius_filter_min_neighbors" value="$(arg radius_filter_min_neighbors)" />
+
+        <param name="enable_parallel_add_pointcloud" value="$(arg enable_parallel_add_pointcloud)" />
+        <param name="enable_parallel_transformations" value="$(arg enable_parallel_transformations)" />
+        <param name="enable_parallel_crop" value="$(arg enable_parallel_crop)" />
+        <param name="enable_parallel_voxel_filter" value="$(arg enable_parallel_voxel_filter)" />
+        <param name="enable_parallel_radius_filter" value="$(arg enable_parallel_radius_filter)" />
+
+    </node>
+
+</launch>

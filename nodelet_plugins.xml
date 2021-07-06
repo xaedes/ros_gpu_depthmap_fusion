@@ -1,0 +1,7 @@
+<library path="lib/libgpu_depthmap_fusion">
+    <class name="gpu_depthmap_fusion/GPUDepthmapFusionNodelet" type="GPUDepthmapFusionNodelet" base_class_type="nodelet::Nodelet">
+        <description> 
+            
+        </description>
+    </class>
+</library>

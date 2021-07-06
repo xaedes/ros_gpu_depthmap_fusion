@@ -1,0 +1,25 @@
+layout src
+focus cmd
+set breakpoint pending on
+#break gpu_depthmap_fusion_component.cpp:176
+#break GPUDepthmapFusion::addDepthmap
+#break GPUDepthmapFusion::uploadDepthmaps
+#break GPUDepthmapFusion::convertDepthmaps
+#break GPUDepthmapFusion::findContoursInZLayers
+#break GPUDepthmapFusion::prepareLayersConnections
+#break gpu_depthmap_fusion.cpp:85
+#break gpu_depthmap_fusion_component.cpp:258
+#break voxelize.h:86
+#break GPUDepthmapFusion::voxelize
+#break GPUDepthmapFusion::computeLayersConnectionsCPU
+#break GPUDepthmapFusion::labelVoxels
+#break gpu_depthmap_fusion.cpp:923
+#break gpu_depthmap_fusion.cpp:673
+#break gpu_depthmap_fusion.cpp:845
+#break gpu_depthmap_fusion.cpp:1079
+#break gpu_depthmap_fusion.cpp:2313
+break GPUDepthmapFusionComponent::callbackN
+break GPUDepthmapFusionComponent::callbackPointSequence
+#break GPUDepthmapFusion::checkAllPointSequenceBuffers
+
+run
